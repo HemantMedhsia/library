@@ -2,10 +2,25 @@ import { useEffect, useState } from "react";
 import { MdLogout, MdSettings } from "react-icons/md";
 import { RiMenu2Fill } from "react-icons/ri";
 import { useNavigate } from "react-router-dom";
+import authService from "../../features/auth/services/authService";
+import { useDispatch, useSelector } from "react-redux";
+import { clearAuth } from "../../features/auth/slices/authSlice";
+import type { RootState } from "../../store/store";
 
 const Headbar = () => {
   const [greeting, setGreeting] = useState("Hi");
   const navigate = useNavigate();
+  const user = useSelector((state: RootState) => state?.auth?.user?.name);
+  const dispatch = useDispatch();
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout(); // clears backend cookie
+    } finally {
+      dispatch(clearAuth());
+      navigate("/auth");
+    }
+  };
 
   const greet = () => {
     const now = new Date();
@@ -29,7 +44,7 @@ const Headbar = () => {
           />
           {true && (
             <p className="text-right md:text-left text-lg md:text-xl font-semibold text-emerald-900 py-1.5 md:py-0">
-              {greeting}, Hemant M!
+              {greeting}, {user} !
             </p>
           )}
         </div>
@@ -54,7 +69,7 @@ const Headbar = () => {
             </div>
           </button>
           <button title="Logout">
-            <div className="rounded-full py-1" onClick={()=> navigate("/auth")}>
+            <div className="rounded-full py-1" onClick={handleLogout}>
               <MdLogout size={22} className="text-red-600 cursor-pointer" />
             </div>
           </button>

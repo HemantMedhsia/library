@@ -1,21 +1,30 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Layout from "./components/layout/Layout"; // adjust path as needed
-import "./App.css";
+import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import AuthPage from "./pages/AuthPage";
+import ProtectedRoute from "./routes/ProtectedRoute";
+import "./App.css";
 
 function App() {
   return (
-    <Router>
       <Routes>
-        {/* Layout wrapper */}
+        {/* Public route */}
         <Route path="/auth" element={<AuthPage />} />
-        <Route path="/" element={<Layout />}>
+
+        {/* Protected routes */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          {/* Nested routes inside Layout */}
           <Route index element={<Dashboard />} />
-          <Route path="/income" index element={<div>hello</div>} />
+          <Route path="income" element={<div>hello</div>} />
         </Route>
       </Routes>
-    </Router>
   );
 }
 

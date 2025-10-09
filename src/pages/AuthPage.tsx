@@ -6,9 +6,12 @@ import * as yup from "yup";
 import { FaUserAlt, FaLock, FaEnvelope } from "react-icons/fa";
 import loginBg from "../assets/images/loginBG6.png";
 import { useNavigate } from "react-router-dom";
+import authService from "../features/auth/services/authService";
+import { useDispatch } from "react-redux";
+import { setAuthUser } from "../features/auth/slices/authSlice";
 
 const loginSchema = yup.object({
-  username: yup.string().required("Username is required"),
+  email: yup.string().required("Email is required"),
   password: yup
     .string()
     .min(6, "Minimum 6 characters")
@@ -27,15 +30,13 @@ const registerSchema = yup.object({
 type LoginFormData = yup.InferType<typeof loginSchema>;
 type RegisterFormData = yup.InferType<typeof registerSchema>;
 
-const API_BASE =
-  import.meta.env.VITE_API_URL ?? "http://localhost:8080/api/auth";
-
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
   const [apiSuccess, setApiSuccess] = useState("");
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   // Two forms (separate)
   const loginForm = useForm<LoginFormData>({
@@ -52,16 +53,30 @@ const AuthPage = () => {
     exit: { opacity: 0, y: -30, transition: { duration: 0.4 } },
   };
 
-  // ✅ Handle login and register separately
   const handleLogin = async (data: LoginFormData) => {
     setLoading(true);
     setApiError("");
     setApiSuccess("");
-    console.log(data);
-    setApiSuccess("Login successful! Redirecting...");
-    setTimeout(() => {
-      navigate("/");
-    }, 2000);
+
+    try {
+      const response = await authService.login({
+        email: data.email,
+        password: data.password,
+      });
+      if (response?.user) {
+        dispatch(setAuthUser(response.user));
+        setApiSuccess("Login successful! Redirecting...");
+        navigate("/");
+      }
+    } catch (err: any) {
+      console.error(err);
+      const message =
+        err.message ||
+        "Invalid email or password. Please try again.";
+      setApiError(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRegister = async (data: RegisterFormData) => {
@@ -122,13 +137,13 @@ const AuthPage = () => {
                     <FaUserAlt className="absolute left-3 top-3 text-emerald-800/70" />
                     <input
                       type="text"
-                      {...loginForm.register("username")}
-                      placeholder="Username"
+                      {...loginForm.register("email")}
+                      placeholder="Email"
                       className="w-full pl-10 pr-3 py-2 rounded-lg border border-emerald-200 focus:ring-2 focus:ring-emerald-400 outline-none"
                     />
-                    {loginForm.formState.errors.username && (
+                    {loginForm.formState.errors.email && (
                       <p className="text-red-500 text-sm mt-1">
-                        {loginForm.formState.errors.username.message}
+                        {loginForm.formState.errors.email.message}
                       </p>
                     )}
                   </div>

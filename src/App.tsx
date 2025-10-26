@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
-import AuthPage from "./pages/AuthPage";
+import AuthPage from "./pages/auth/AuthPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import "./App.css";
 

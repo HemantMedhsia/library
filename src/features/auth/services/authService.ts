@@ -7,15 +7,9 @@ export interface LoginPayload {
 }
 
 const login = async (payload: LoginPayload) => {
-  /**
-   * Backend returns:
-   * - sets access_token cookie (HttpOnly)
-   * - optionally returns { data: { user: {...}, tokenResponse: {...} } }
-   * We return the response data object (user/tokenResponse) to the caller.
-   */
   const res = await api.post("/auth/login", payload);
-  // your backend seems to wrap response in a structure: { status, message, data: { ... } }
-  return res.data?.data;
+  console.log("Login response data:", res.data);
+  return res?.data;
 };
 
 const logout = async () => {
@@ -32,13 +26,14 @@ const logout = async () => {
 };
 
 const refresh = async () => {
-  /**
-   * Preferred backend: /auth/refresh reads refresh token from HttpOnly cookie and
-   * returns a new access token (and optionally new user data). Use withCredentials.
-   */
-  const res = await api.post("/auth/refresh", null); // no body — cookies are used
-  // return the data (maybe TokenResponse or user)
-  return res.data;
+  try {
+    console.log("Attempting to refresh token...");
+    const res = await api.post("/auth/refresh", { withCredentials: true });
+    return res.data;
+  } catch (error) {
+    console.error("Refresh token error:", error);
+    throw error;
+  }
 };
 
 export default {

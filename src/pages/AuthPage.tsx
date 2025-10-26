@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import authService from "../features/auth/services/authService";
 import { useDispatch } from "react-redux";
 import { setAuthUser } from "../features/auth/slices/authSlice";
+import axios from "axios";
 
 const loginSchema = yup.object({
   email: yup.string().required("Email is required"),
@@ -25,6 +26,7 @@ const registerSchema = yup.object({
     .string()
     .min(6, "Minimum 6 characters")
     .required("Password is required"),
+  role: yup.string().required("Role is required"),
 });
 
 type LoginFormData = yup.InferType<typeof loginSchema>;
@@ -58,20 +60,30 @@ const AuthPage = () => {
     setApiError("");
     setApiSuccess("");
 
+    const payload = { email: data.email, password: data.password };
+
     try {
-      const response = await authService.login({
-        email: data.email,
-        password: data.password,
-      });
-      if (response?.user) {
-        dispatch(setAuthUser(response.user));
+      const response = await axios.post(
+        "http://localhost:8080/api/v1/auth/login",
+        payload,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response?.data) {
+        dispatch(setAuthUser(response.data));
         setApiSuccess("Login successful! Redirecting...");
         navigate("/");
       }
     } catch (err: any) {
       console.error(err);
       const message =
-        err.message ||
+        err?.response?.data?.message ||
+        err?.message ||
         "Invalid email or password. Please try again.";
       setApiError(message);
     } finally {
@@ -241,6 +253,26 @@ const AuthPage = () => {
                     {registerForm.formState.errors.password && (
                       <p className="text-red-500 text-sm mt-1">
                         {registerForm.formState.errors.password.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <FaUserAlt className="absolute left-3 top-3 text-emerald-800/70" />
+                    <select
+                      {...registerForm.register("role")}
+                      className="w-full pl-10 pr-3 py-2 rounded-lg border border-emerald-200 bg-white focus:ring-2 focus:ring-emerald-400 outline-none"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>
+                        Select role
+                      </option>
+                      <option value="User">User</option>
+                      <option value="Admin">Admin</option>
+                    </select>
+                    {registerForm.formState.errors.role && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {registerForm.formState.errors.role.message}
                       </p>
                     )}
                   </div>

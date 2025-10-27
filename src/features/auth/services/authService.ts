@@ -1,38 +1,39 @@
 // src/features/auth/services/authService.ts
-import api from "../../../services/api";
+import axios from "axios";
+
+const BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api/v1";
 
 export interface LoginPayload {
   email: string;
   password: string;
 }
 
+// Use plain axios and pass withCredentials so server can set cookies
 const login = async (payload: LoginPayload) => {
-  const res = await api.post("/auth/login", payload);
-  console.log("Login response data:", res.data);
-  return res?.data;
+  const res = await axios.post(`${BASE}/auth/login`, payload, { withCredentials: true });
+  console.log("Login response:", res.status, res.data);
+  return res.data;
 };
 
+// Logout — plain axios + withCredentials so backend can clear cookie
 const logout = async () => {
-  /**
-   * If you have an API endpoint to clear server side cookies (recommended),
-   * call it. Otherwise just clear client state + navigate to login.
-   */
   try {
-    // call a backend logout endpoint to clear cookies server-side (if implemented)
-    await api.post("/auth/logout");
+    await axios.post(`${BASE}/auth/logout`, {}, { withCredentials: true });
   } catch (e) {
-    // ignore network errors for logout
+    console.warn("Logout request failed:", e);
   }
 };
 
+// Refresh — plain axios + withCredentials (IMPORTANT: must bypass interceptor)
 const refresh = async () => {
   try {
-    console.log("Attempting to refresh token...");
-    const res = await api.post("/auth/refresh", { withCredentials: true });
+    console.log("Attempting refresh...");
+    const res = await axios.post(`${BASE}/auth/refresh`, {}, { withCredentials: true });
+    console.log("Refresh response:", res.status, res.data);
     return res.data;
-  } catch (error) {
-    console.error("Refresh token error:", error);
-    throw error;
+  } catch (err:any) {
+    console.error("Refresh token error:", err?.data ?? err.message);
+    throw err;
   }
 };
 

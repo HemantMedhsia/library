@@ -5,6 +5,7 @@ import AuthPage from "./pages/auth/AuthPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import "./App.css";
 import AddExpense from "./pages/expense/AddExpense";
+import AddSaving from "./pages/saving/AddSaving";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="income" element={<div>hello</div>} />
           <Route path="expenses/add-expense" element={<AddExpense />} />
+          <Route path="expenses/add-saving" element={<AddSaving/>}/>
         </Route>
       </Routes>
   );

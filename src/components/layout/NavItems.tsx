@@ -34,7 +34,7 @@ export const navItems: NavItem[] = [
   },
   {
     name: "Savings",
-    path: "/savings",
+    path: "/expenses/add-saving",
     icon: <MdSavings />,
   },
   {

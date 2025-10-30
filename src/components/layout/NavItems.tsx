@@ -23,7 +23,7 @@ export const navItems: NavItem[] = [
     path: "/expenses",
     icon: <MdOutlineAttachMoney />,
     children: [
-      { name: "Add Expense", path: "/expenses/add", icon: <MdOutlineAttachMoney /> },
+      { name: "Add Expense", path: "/expenses/add-expense", icon: <MdOutlineAttachMoney /> },
       { name: "View Expenses", path: "/expenses/view", icon: <MdOutlineAttachMoney /> },
     ],
   },

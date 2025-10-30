@@ -35,7 +35,7 @@ const Headbar = () => {
   }, []);
 
   return (
-    <div className=" z-10 flex justify-center items-center mb-6 gap-4">
+    <div className=" z-10 flex justify-center items-center mb-6 gap-4 mt-4">
       <div className="w-full flex flex-col md:flex-row md:justify-between md:items-center">
         <div className="flex justify-between items-center">
           <RiMenu2Fill

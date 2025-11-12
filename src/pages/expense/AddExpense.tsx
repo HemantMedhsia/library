@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PlusCircle, X, Eye, Loader2 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
 import Headbar from "../../components/dashboard/Headbar";
 import ExpenseForm from "./ExpenseForm";
 import api from "../../services/api";
@@ -30,6 +42,25 @@ export default function AddExpense() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // ===== Dummy Analytics Data =====
+  const categoryData = [
+    { name: "Food", value: 22000 },
+    { name: "Transport", value: 8000 },
+    { name: "Bills", value: 12000 },
+    { name: "Entertainment", value: 7000 },
+    { name: "Shopping", value: 5000 },
+  ];
+  const monthlyTrend = [
+    { month: "Jan", expense: 3200 },
+    { month: "Feb", expense: 4700 },
+    { month: "Mar", expense: 5900 },
+    { month: "Apr", expense: 6500 },
+    { month: "May", expense: 7200 },
+    { month: "Jun", expense: 8100 },
+    { month: "Jul", expense: 9100 },
+  ];
+  const COLORS = ["#10B981", "#34D399", "#6EE7B7", "#A7F3D0", "#DCFCE7"];
 
   // ================= FETCH FUNCTIONS =================
   const fetchExpenses = async () => {
@@ -64,7 +95,6 @@ export default function AddExpense() {
     await Promise.all([fetchExpenses(), fetchTotalExpense()]);
   };
 
-  // ================= INITIAL LOAD =================
   useEffect(() => {
     handleRefresh();
   }, []);
@@ -78,57 +108,107 @@ export default function AddExpense() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="min-h-screen p-6"
+        className="min-h-screen p-6 bg-gradient-to-br from-emerald-50 via-white to-emerald-100"
       >
-        <div className="max-w-5xl mx-auto space-y-6">
-          {/* ================= SUMMARY SECTION ================= */}
-          <div className="flex justify-between items-center bg-white rounded-2xl p-6 shadow-sm border border-emerald-100">
+        <div className="max-w-6xl mx-auto space-y-8">
+          {/* ================= HEADER ================= */}
+          <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-xl font-semibold text-emerald-700">
-                Total Expense
-              </h2>
-              <p className="text-3xl font-bold text-emerald-600 mt-1">
-                ₹{totalExpense.toLocaleString()}
+              <h1 className="text-3xl font-bold text-emerald-700">
+                Expense Dashboard
+              </h1>
+              <p className="text-emerald-500 text-sm mt-1">
+                Track your spending smartly and beautifully ✨
               </p>
             </div>
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl shadow-md hover:bg-emerald-600 transition-all"
+              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl shadow-md hover:bg-emerald-700 transition-all"
             >
               <PlusCircle size={20} />
               Add Expense
             </motion.button>
           </div>
 
+          {/* ================= STATS CARDS ================= */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <StatCard
+              title="Total Expense"
+              value={`₹${totalExpense.toLocaleString() || "54,200"}`}
+              sub="All time"
+            />
+            <StatCard title="This Month" value="₹18,500" sub="November 2025" />
+            <StatCard title="Top Category" value="Food 🍕" sub="40% of spend" />
+          </div>
+
+          {/* ================= ANALYTICS SECTION ================= */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <ChartCard title="Category Breakdown">
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={90}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartCard>
+
+            <ChartCard title="Monthly Expense Trend">
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={monthlyTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#d1fae5" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line
+                    type="monotone"
+                    dataKey="expense"
+                    stroke="#10B981"
+                    strokeWidth={2.5}
+                    dot={{ r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          </div>
+
           {/* ================= EXPENSE LIST ================= */}
-          <div className="bg-white/90 backdrop-blur-md border border-emerald-100 rounded-2xl shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-emerald-50 flex justify-between items-center">
+          <div className=" backdrop-blur-md border border-emerald-100 rounded-2xl shadow-md overflow-hidden">
+            <div className="p-5 border-b border-emerald-50 flex justify-between items-center">
               <h3 className="text-lg font-semibold text-emerald-700">
-                All Expenses
+                Recent Expenses
               </h3>
               <span className="text-sm text-emerald-500">
-                {expenses.length} {expenses.length === 1 ? "item" : "items"}
+                {expenses.length} items
               </span>
             </div>
 
-            {/* ================= STATES ================= */}
-            {loading && (
+            {loading ? (
               <div className="flex justify-center items-center py-10 text-emerald-600">
                 <Loader2 className="animate-spin mr-2" size={20} />
                 Loading expenses...
               </div>
-            )}
-
-            {error && <p className="text-center text-red-500 py-6">{error}</p>}
-
-            {!loading && expenses.length === 0 && (
+            ) : !loading && expenses.length === 0 ? (
               <p className="text-center text-emerald-400 py-6">
                 No expenses yet. Add one to get started!
               </p>
-            )}
-
-            {!loading && expenses.length > 0 && (
+            ) : (
               <motion.div layout className="divide-y divide-emerald-50">
                 {expenses.map((exp) => (
                   <motion.div
@@ -198,147 +278,57 @@ export default function AddExpense() {
                 </h2>
 
                 <ExpenseForm
-                  onSuccess={async () => {
-                    await handleRefresh(); // 🔄 refresh data immediately
-                    setShowAddModal(false); // then close modal
-                  }}
+                  {...({
+                    onSuccess: async () => {
+                      await handleRefresh();
+                      setShowAddModal(false);
+                    },
+                  } as any)}
                 />
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* ================= VIEW DETAILS MODAL ================= */}
-        <AnimatePresence>
-          {selectedExpense && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50"
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-md relative"
-              >
-                <button
-                  onClick={() => setSelectedExpense(null)}
-                  className="absolute top-3 right-3 text-emerald-500 hover:text-emerald-700"
-                >
-                  <X size={20} />
-                </button>
-
-                <h2 className="text-xl font-semibold text-emerald-700 mb-4 flex items-center gap-2">
-                  {selectedExpense.icon && (
-                    <span className="text-2xl">{selectedExpense.icon}</span>
-                  )}
-                  {selectedExpense.title}
-                </h2>
-
-                <div className="space-y-3 text-emerald-800">
-                  <p>
-                    <span className="font-semibold">Category:</span>{" "}
-                    {selectedExpense.category}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Amount:</span> ₹
-                    {selectedExpense.amount}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Date:</span>{" "}
-                    {selectedExpense.date}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Description:</span>{" "}
-                    {selectedExpense.description}
-                  </p>
-
-                  {/* ✅ Show Image Inline */}
-                  {selectedExpense.fileUrl &&
-                    selectedExpense.fileUrl.match(/\.(jpg|jpeg|png|gif)$/i) && (
-                      <div className="mt-3">
-                        <span className="font-semibold block mb-2">
-                          Attachment:
-                        </span>
-                        <img
-                          src={selectedExpense.fileUrl}
-                          alt="Expense Attachment"
-                          onClick={() =>
-                            setImagePreview(selectedExpense.fileUrl || null)
-                          }
-                          className="rounded-xl max-h-64 object-cover cursor-pointer hover:scale-105 transition-transform"
-                        />
-                      </div>
-                    )}
-
-                  {/* Non-image fallback */}
-                  {selectedExpense.fileUrl &&
-                    !selectedExpense.fileUrl.match(/\.(jpg|jpeg|png|gif)$/i) && (
-                      <p>
-                        <span className="font-semibold">Attachment:</span>{" "}
-                        <a
-                          href={selectedExpense.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-emerald-500 underline"
-                        >
-                          View File
-                        </a>
-                      </p>
-                    )}
-
-                  {selectedExpense.owner && (
-                    <p>
-                      <span className="font-semibold">Added By:</span>{" "}
-                      {selectedExpense.owner.name}
-                    </p>
-                  )}
-                </div>
-
-                <div className="text-right mt-6">
-                  <button
-                    onClick={() => setSelectedExpense(null)}
-                    className="px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600"
-                  >
-                    Close
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ================= IMAGE PREVIEW MODAL ================= */}
-        <AnimatePresence>
-          {imagePreview && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/70 flex justify-center items-center z-[100]"
-            >
-              <motion.img
-                src={imagePreview}
-                alt="Preview"
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0.9 }}
-                transition={{ duration: 0.2 }}
-                className="max-h-[80vh] rounded-xl shadow-2xl border border-white/20"
-              />
-              <button
-                onClick={() => setImagePreview(null)}
-                className="absolute top-5 right-5 bg-white/90 text-emerald-700 rounded-full p-2 shadow-lg hover:bg-white"
-              >
-                <X size={20} />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
     </>
+  );
+}
+
+// ================= SUBCOMPONENTS =================
+
+function StatCard({
+  title,
+  value,
+  sub,
+}: {
+  title: string;
+  value: string;
+  sub?: string;
+}) {
+  return (
+    <motion.div
+      whileHover={{ y: -3 }}
+      transition={{ type: "spring", stiffness: 200 }}
+      className="p-5 rounded-2xl bg-gradient-to-br from-emerald-100/80 to-white/70 shadow-md border border-emerald-200/50 backdrop-blur-sm"
+    >
+      <h4 className="text-sm text-emerald-600 font-medium">{title}</h4>
+      <p className="text-2xl font-bold text-emerald-700 mt-1">{value}</p>
+      <p className="text-xs text-emerald-500 mt-1">{sub}</p>
+    </motion.div>
+  );
+}
+
+function ChartCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white/80 backdrop-blur-md border border-emerald-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+      <h4 className="text-lg font-semibold text-emerald-700 mb-3">{title}</h4>
+      {children}
+    </div>
   );
 }

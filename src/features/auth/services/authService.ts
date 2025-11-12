@@ -37,8 +37,32 @@ const refresh = async () => {
   }
 };
 
+const forgotPassword = async (email: string) => {
+  try {
+    const res = await axios.post(`${BASE}/auth/forgot-password`, { email });
+    console.log("Forgot Password response:", res.status, res.data);
+    return res.data;
+  } catch (err: any) {
+    console.error("Forgot password error:", err?.response?.data ?? err.message);
+    throw err;
+  }
+};
+
+const resetPassword = async (token: string, password: string) => {
+  try {
+    const res = await axios.post(`${BASE}/auth/reset-password`, { token, password });
+    console.log("Reset Password response:", res.status, res.data);
+    return res.data;
+  } catch (err: any) {
+    console.error("Reset password error:", err?.response?.data ?? err.message);
+    throw err;
+  }
+};
+
 export default {
   login,
   logout,
   refresh,
+  forgotPassword,
+  resetPassword,
 };

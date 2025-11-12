@@ -7,14 +7,19 @@ interface ExpenseFieldProps {
   children: React.ReactNode;
 }
 
-export default function ExpenseField({ label, icon, error, children }: ExpenseFieldProps) {
+export default function ExpenseField({
+  label,
+  icon,
+  error,
+  children,
+}: ExpenseFieldProps) {
   return (
     <label className="flex flex-col">
-      <span className="text-sm text-emerald-700 font-medium mb-1">{label}</span>
-      <div className="flex items-center gap-2">
+      <span className="text-sm text-emerald-700 font-medium mb-1 flex items-center gap-1">
         {icon}
-        {children}
-      </div>
+        {label}
+      </span>
+      <div className="flex items-center gap-2">{children}</div>
       {error && <span className="text-xs text-red-500 mt-1">{error}</span>}
     </label>
   );

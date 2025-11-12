@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { CreditCard, Calendar, Tag, Edit3, ImageIcon, Smile } from "lucide-react";
+import {
+  CreditCard,
+  Calendar,
+  Tag,
+  Edit3,
+  ImageIcon,
+  Smile,
+} from "lucide-react";
 import ExpenseField from "./ExpenseField";
 import api from "../../services/api";
+import { motion } from "framer-motion";
 
 type ExpenseFormData = {
   title: string;
@@ -14,7 +22,7 @@ type ExpenseFormData = {
   icon?: string;
 };
 
-export default function ExpenseForm() {
+export default function ExpenseForm({ onSuccess }: { onSuccess?: () => void }) {
   const {
     register,
     handleSubmit,
@@ -35,7 +43,7 @@ export default function ExpenseForm() {
 
   const [selectedEmoji, setSelectedEmoji] = useState("");
 
-  const emojiOptions = ["🍕", "🍔", "🍱", "🍻", "🚗", "💡", "🎬", "🛍️", "🏠", "💼"];
+  const emojiOptions = ["🍕", "🍔", "🛍️", "💡", "🎬", "🏠", "🚗", "💻", "🎁", "💼"];
 
   const handleEmojiSelect = (emoji: string) => {
     setSelectedEmoji(emoji);
@@ -46,6 +54,7 @@ export default function ExpenseForm() {
     try {
       await api.post("/expense/create-expense", data);
       alert("Expense saved successfully!");
+      if (onSuccess) onSuccess();
     } catch (err) {
       console.error(err);
       alert("Something went wrong while saving expense!");
@@ -56,11 +65,14 @@ export default function ExpenseForm() {
   };
 
   return (
-    <form
+    <motion.form
       onSubmit={handleSubmit(onSubmit)}
-      className="md:col-span-2 flex flex-col gap-4"
+      className="flex flex-col gap-4"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
     >
-      {/* Row 1 */}
+      {/* ====== Row 1 ====== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <ExpenseField
           label="Title"
@@ -70,7 +82,7 @@ export default function ExpenseForm() {
           <input
             {...register("title", { required: "Title is required" })}
             placeholder="e.g. Grocery Shopping"
-            className="w-full rounded-lg border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none"
+            className="w-full rounded-lg border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none bg-white/70 backdrop-blur-sm"
           />
         </ExpenseField>
 
@@ -88,12 +100,12 @@ export default function ExpenseForm() {
             placeholder="0.00"
             type="number"
             step="0.01"
-            className="w-full rounded-lg border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none"
+            className="w-full rounded-lg border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none bg-white/70 backdrop-blur-sm"
           />
         </ExpenseField>
       </div>
 
-      {/* Row 2 */}
+      {/* ====== Row 2 ====== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <ExpenseField
           label="Date"
@@ -103,7 +115,7 @@ export default function ExpenseForm() {
           <input
             {...register("date", { required: "Date is required" })}
             type="date"
-            className="w-full rounded-lg border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none"
+            className="w-full rounded-lg border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none bg-white/70 backdrop-blur-sm"
           />
         </ExpenseField>
 
@@ -114,7 +126,7 @@ export default function ExpenseForm() {
         >
           <select
             {...register("category", { required: "Category is required" })}
-            className="w-full rounded-lg border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none"
+            className="w-full rounded-lg border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none bg-white/70 backdrop-blur-sm"
           >
             <option value="">Choose category</option>
             <option value="Food">Food</option>
@@ -127,16 +139,17 @@ export default function ExpenseForm() {
         </ExpenseField>
       </div>
 
-      {/* Emoji Picker */}
+      {/* ====== Emoji Picker ====== */}
       <ExpenseField
         label="Choose Emoji"
         icon={<Smile size={16} className="text-emerald-500" />}
       >
         <div className="flex flex-wrap gap-2">
           {emojiOptions.map((emoji) => (
-            <button
+            <motion.button
               key={emoji}
               type="button"
+              whileHover={{ scale: 1.1 }}
               onClick={() => handleEmojiSelect(emoji)}
               className={`text-xl p-2 rounded-full border transition ${
                 selectedEmoji === emoji
@@ -145,12 +158,12 @@ export default function ExpenseForm() {
               }`}
             >
               {emoji}
-            </button>
+            </motion.button>
           ))}
         </div>
       </ExpenseField>
 
-      {/* File URL */}
+      {/* ====== File URL ====== */}
       <ExpenseField
         label="Receipt URL"
         icon={<ImageIcon size={16} className="text-emerald-500" />}
@@ -158,11 +171,11 @@ export default function ExpenseForm() {
         <input
           {...register("fileUrl")}
           placeholder="https://example.com/bill.jpg"
-          className="w-full rounded-lg border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none"
+          className="w-full rounded-lg border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none bg-white/70 backdrop-blur-sm"
         />
       </ExpenseField>
 
-      {/* Description */}
+      {/* ====== Description ====== */}
       <ExpenseField label="Description" error={errors.description?.message}>
         <textarea
           {...register("description", {
@@ -171,11 +184,11 @@ export default function ExpenseForm() {
           })}
           placeholder="Add a brief note..."
           rows={4}
-          className="w-full rounded-xl border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none resize-none"
+          className="w-full rounded-xl border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none resize-none bg-white/70 backdrop-blur-sm"
         />
       </ExpenseField>
 
-      {/* Buttons */}
+      {/* ====== Buttons ====== */}
       <div className="flex justify-end gap-3 mt-2">
         <button
           type="button"
@@ -195,6 +208,6 @@ export default function ExpenseForm() {
           {isSubmitting ? "Saving..." : "Save Expense"}
         </button>
       </div>
-    </form>
+    </motion.form>
   );
 }

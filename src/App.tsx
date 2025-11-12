@@ -6,6 +6,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import "./App.css";
 import AddExpense from "./pages/expense/AddExpense";
 import AddSaving from "./pages/saving/AddSaving";
+import Income from "./pages/income/Income";
 
 function App() {
   return (
@@ -24,7 +25,7 @@ function App() {
         >
           {/* Nested routes inside Layout */}
           <Route index element={<Dashboard />} />
-          <Route path="income" element={<div>hello</div>} />
+          <Route path="income" element={<Income />} />
           <Route path="expenses/add-expense" element={<AddExpense />} />
           <Route path="expenses/add-saving" element={<AddSaving/>}/>
         </Route>

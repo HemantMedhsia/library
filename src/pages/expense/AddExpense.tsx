@@ -108,7 +108,7 @@ export default function AddExpense() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="min-h-screen p-6 bg-gradient-to-br from-emerald-50 via-white to-emerald-100"
+        className="min-h-screen p-6 "
       >
         <div className="max-w-6xl mx-auto space-y-8">
           {/* ================= HEADER ================= */}

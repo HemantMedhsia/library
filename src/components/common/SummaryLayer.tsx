@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import api from "../../services/api";
 
 interface Card {
   name: string;
@@ -17,18 +18,31 @@ const SummaryLayer: React.FC = () => {
 
   const fetchTotalBalance = () => {
     api
-      .post("auth/refresh")
+      .get("saving/total")
       .then((response) => {
-        addToast(JSON.stringify(response.data.message));
+        setTotalBalance(response.data.data || 0);
+        setTotalSavings(response.data.data || 0);
+        
+        console.log("Total Balance Response:", response.data);
       })
       .catch((error) => {
-        addToast("Error: " + error.message);
+        console.error("Error fetching total balance:", error);
       });
   };
 
   const fetchTotalIncome = () => {};
 
-  const fetchTotalExpenses = () => {};
+  const fetchTotalExpenses = () => {
+    api
+      .get("expense/total")
+      .then((response) => {
+        setTotalExpenses(response.data.data || 0);
+        console.log("Total Expenses Response:", response.data);
+      })
+      .catch((error) => {
+        console.error("Error fetching total expenses:", error);
+      });
+  };
 
   const fetchTotalSavings = () => {};
 

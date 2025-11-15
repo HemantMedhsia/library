@@ -20,12 +20,8 @@ export const navItems: NavItem[] = [
   },
   {
     name: "Expenses",
-    path: "/expenses",
+    path: "/expenses/add-expense",
     icon: <MdOutlineAttachMoney />,
-    children: [
-      { name: "Add Expense", path: "/expenses/add-expense", icon: <MdOutlineAttachMoney /> },
-      { name: "View Expenses", path: "/expenses/view", icon: <MdOutlineAttachMoney /> },
-    ],
   },
   {
     name: "Income",

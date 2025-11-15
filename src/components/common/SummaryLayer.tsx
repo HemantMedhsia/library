@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 interface Card {
   name: string;
@@ -9,44 +9,70 @@ interface Card {
   percent: number;
 }
 
- const cardsData: Card[] = [
-  {
-    icon: "wallet",
-    color1: "#1E3A1E", // dark emerald
-    color2: "#6EE7B7", // soft minty green
-    name: "Total Balance",
-    value: 12345,
-    percent: 78,
-  },
-  {
-    icon: "hand-holding-dollar",
-    color1: "#065F46", // rich green
-    color2: "#10B981", // emerald
-    name: "Total Income",
-    value: 12345,
-    percent: 78,
-  },
-  {
-    icon: "sack-dollar",
-    color1: "#047857", // teal-ish green
-    color2: "#34D399", // light emerald
-    name: "Total Expenses",
-    value: 12345,
-    percent: 78,
-  },
-  {
-    icon: "piggy-bank",
-    color1: "#065F46", // darker green
-    color2: "#A7F3D0", // pale mint
-    name: "Total Savings",
-    value: 12345,
-    percent: 78,
-  },
-];
-
-
 const SummaryLayer: React.FC = () => {
-  
+  const [totalBalance, setTotalBalance] = useState<number>(0);
+  const [totalIncome, setTotalIncome] = useState<number>(0);
+  const [totalExpenses, setTotalExpenses] = useState<number>(0);
+  const [totalSavings, setTotalSavings] = useState<number>(0);
+
+  const fetchTotalBalance = () => {
+    api
+      .post("auth/refresh")
+      .then((response) => {
+        addToast(JSON.stringify(response.data.message));
+      })
+      .catch((error) => {
+        addToast("Error: " + error.message);
+      });
+  };
+
+  const fetchTotalIncome = () => {};
+
+  const fetchTotalExpenses = () => {};
+
+  const fetchTotalSavings = () => {};
+
+  useEffect(() => {
+    fetchTotalBalance();
+    fetchTotalIncome();
+    fetchTotalExpenses();
+    fetchTotalSavings();
+  }, []);
+
+  const cardsData: Card[] = [
+    {
+      icon: "wallet",
+      color1: "#1E3A1E", // dark emerald
+      color2: "#6EE7B7", // soft minty green
+      name: "Total Balance",
+      value: totalBalance,
+      percent: 78,
+    },
+    {
+      icon: "hand-holding-dollar",
+      color1: "#065F46", // rich green
+      color2: "#10B981", // emerald
+      name: "Total Income",
+      value: totalIncome,
+      percent: 78,
+    },
+    {
+      icon: "sack-dollar",
+      color1: "#047857", // teal-ish green
+      color2: "#34D399", // light emerald
+      name: "Total Expenses",
+      value: totalExpenses,
+      percent: 78,
+    },
+    {
+      icon: "piggy-bank",
+      color1: "#065F46", // darker green
+      color2: "#A7F3D0", // pale mint
+      name: "Total Savings",
+      value: totalSavings,
+      percent: 78,
+    },
+  ];
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">

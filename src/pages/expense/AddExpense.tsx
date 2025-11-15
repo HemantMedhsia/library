@@ -39,20 +39,31 @@ interface Expense {
 }
 
 export default function AddExpense() {
+  // ====================== STATES ======================
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalExpense, setTotalExpense] = useState<number>(0);
   const [currentMonthExpense, setCurrentMonthExpense] = useState<number>(0);
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showListModal, setShowListModal] = useState(false);
+
   const [viewExpense, setViewExpense] = useState<Expense | null>(null);
   const [editExpense, setEditExpense] = useState<Expense | null>(null);
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
+
   const [categoryData, setCategoryData] = useState<any[]>([]);
   const [monthlyTrend, setMonthlyTrend] = useState<any[]>([]);
+
+  // 🔍 Search by category
+  const [categorySearch, setCategorySearch] = useState("");
+
+  // Filtered list
+  const filteredExpenses = expenses.filter((exp) =>
+    exp.category.toLowerCase().includes(categorySearch.toLowerCase())
+  );
 
   // ====================== FETCH FUNCTIONS ======================
 
@@ -60,7 +71,6 @@ export default function AddExpense() {
     try {
       const res = await api.get("/expense/trend");
       if (res.data?.status === "success") {
-        console.log("Monthly Trend Response:", res.data.data);
         setMonthlyTrend(res.data.data);
       }
     } catch (err) {
@@ -86,11 +96,8 @@ export default function AddExpense() {
 
       if (response.data?.status === "success") {
         setExpenses(response.data.data);
-      } else {
-        throw new Error(response.data?.message || "Unknown error");
       }
     } catch (err) {
-      setError("Failed to load expenses.");
       console.error("Error fetching expenses:", err);
     } finally {
       setLoading(false);
@@ -133,6 +140,8 @@ export default function AddExpense() {
     handleRefresh();
   }, []);
 
+  // ====================== DELETE FUNCTION ======================
+
   const handleDeleteExpense = async () => {
     if (!expenseToDelete) return;
 
@@ -145,31 +154,12 @@ export default function AddExpense() {
     } finally {
       setDeleting(false);
       setExpenseToDelete(null);
+      setShowListModal(true);
     }
   };
 
-  // ====================== DUMMY ANALYTICS ======================
-  // const categoryData = [
-  //   { name: "Food", value: 22000 },
-  //   { name: "Transport", value: 8000 },
-  //   { name: "Bills", value: 12000 },
-  //   { name: "Entertainment", value: 7000 },
-  //   { name: "Shopping", value: 5000 },
-  // ];
-
-  // const monthlyTrend = [
-  //   { month: "Jan", expense: 3200 },
-  //   { month: "Feb", expense: 4700 },
-  //   { month: "Mar", expense: 5900 },
-  //   { month: "Apr", expense: 6500 },
-  //   { month: "May", expense: 7200 },
-  //   { month: "Jun", expense: 8100 },
-  //   { month: "Jul", expense: 9100 },
-  // ];
-
   const COLORS = ["#10B981", "#34D399", "#6EE7B7", "#A7F3D0", "#DCFCE7"];
 
-  // ========================== UI ==============================
   return (
     <>
       <Headbar />
@@ -181,6 +171,7 @@ export default function AddExpense() {
         className="min-h-screen p-6"
       >
         <div className="max-w-6xl mx-auto space-y-8">
+
           {/* HEADER */}
           <div className="flex justify-between items-center">
             <div>
@@ -192,14 +183,26 @@ export default function AddExpense() {
               </p>
             </div>
 
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl shadow-md hover:bg-emerald-700"
-            >
-              <PlusCircle size={20} />
-              Add Expense
-            </motion.button>
+            <div className="flex gap-3">
+
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowListModal(true)}
+                className="flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-xl shadow hover:bg-emerald-200"
+              >
+                <Eye size={18} />
+                View Expenses
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl shadow-md hover:bg-emerald-700"
+              >
+                <PlusCircle size={20} />
+                Add Expense
+              </motion.button>
+            </div>
           </div>
 
           {/* STATS CARDS */}
@@ -262,84 +265,6 @@ export default function AddExpense() {
               </ResponsiveContainer>
             </ChartCard>
           </div>
-
-          {/* EXPENSE LIST */}
-          <div className="border rounded-2xl shadow-md overflow-hidden">
-            <div className="p-5 border-b flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-emerald-700">
-                Recent Expenses
-              </h3>
-              <span className="text-sm text-emerald-500">
-                {expenses.length} items
-              </span>
-            </div>
-
-            {loading ? (
-              <div className="flex justify-center py-10 text-emerald-600">
-                <Loader2 className="animate-spin mr-2" size={20} />
-                Loading expenses...
-              </div>
-            ) : expenses.length === 0 ? (
-              <p className="text-center text-emerald-400 py-6">
-                No expenses yet. Add one!
-              </p>
-            ) : (
-              <motion.div layout className="divide-y">
-                {expenses.map((exp) => (
-                  <motion.div
-                    key={exp.id}
-                    layout
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="flex justify-between items-center p-4 hover:bg-emerald-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{exp.icon || "💵"}</span>
-                      <div>
-                        <p className="font-medium text-emerald-800">
-                          {exp.title}
-                        </p>
-                        <p className="text-xs text-emerald-500">
-                          {exp.category} • {exp.date}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <p className="font-semibold text-emerald-600">
-                        ₹{exp.amount}
-                      </p>
-
-                      <button
-                        onClick={() => setViewExpense(exp)}
-                        className="text-sm text-emerald-500 hover:text-emerald-700"
-                      >
-                        <Eye size={16} /> View
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setEditExpense(exp);
-                          setShowAddModal(true);
-                        }}
-                        className="text-sm text-blue-500 hover:text-blue-700"
-                      >
-                        ✏️ Edit
-                      </button>
-
-                      <button
-                        onClick={() => setExpenseToDelete(exp)}
-                        className="text-sm text-red-500 hover:text-red-700"
-                      >
-                        🗑️ Delete
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-          </div>
         </div>
 
         {/* ADD / EDIT MODAL */}
@@ -361,6 +286,7 @@ export default function AddExpense() {
                   onClick={() => {
                     setShowAddModal(false);
                     setEditExpense(null);
+                    setShowListModal(true);
                   }}
                   className="absolute top-3 right-3 text-emerald-500"
                 >
@@ -372,26 +298,30 @@ export default function AddExpense() {
                 </h2>
 
                 <ExpenseForm
-                  {...({
+                  {...{
                     expense: editExpense,
                     onSuccess: async () => {
                       await handleRefresh();
                       setShowAddModal(false);
                       setEditExpense(null);
+                      setShowListModal(true); // ✔ After update, go back to list modal
                     },
-                  } as any)}
+                  }}
                 />
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* VIEW MODAL */}
+        {/* VIEW EXPENSE MODAL */}
         <AnimatePresence>
           {viewExpense && (
             <ExpenseViewModal
               expense={viewExpense}
-              onClose={() => setViewExpense(null)}
+              onClose={() => {
+                setViewExpense(null);
+                setShowListModal(true);
+              }}
             />
           )}
         </AnimatePresence>
@@ -401,10 +331,123 @@ export default function AddExpense() {
           open={!!expenseToDelete}
           title="Delete Expense"
           message={`Delete "${expenseToDelete?.title}"?`}
-          onCancel={() => setExpenseToDelete(null)}
+          onCancel={() => {
+            setExpenseToDelete(null);
+            setShowListModal(true);
+          }}
           onConfirm={handleDeleteExpense}
           loading={deleting}
         />
+
+        {/* ==================== EXPENSE LIST MODAL ==================== */}
+        <AnimatePresence>
+          {showListModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 flex justify-center items-center z-50"
+            >
+              <motion.div
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.9 }}
+                className="bg-white rounded-2xl p-6 w-full max-w-3xl relative max-h-[80vh] overflow-y-auto"
+              >
+                <button
+                  onClick={() => setShowListModal(false)}
+                  className="absolute top-3 right-3 text-emerald-500"
+                >
+                  <X size={22} />
+                </button>
+
+                <h2 className="text-xl font-semibold text-emerald-700 mb-4">
+                  Expense List
+                </h2>
+
+                {/* SEARCH INPUT */}
+                <div className="mb-4">
+                  <input
+                    type="text"
+                    placeholder="Search by category..."
+                    className="w-full px-3 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-400"
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                  />
+                </div>
+
+                {loading ? (
+                  <div className="flex justify-center py-10 text-emerald-600">
+                    <Loader2 className="animate-spin mr-2" size={20} />
+                    Loading expenses...
+                  </div>
+                ) : filteredExpenses.length === 0 ? (
+                  <p className="text-center text-emerald-400 py-6">
+                    No matching expenses.
+                  </p>
+                ) : (
+                  <div className="divide-y">
+                    {filteredExpenses.map((exp) => (
+                      <div
+                        key={exp.id}
+                        className="flex justify-between items-center p-4 hover:bg-emerald-50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{exp.icon || "💵"}</span>
+                          <div>
+                            <p className="font-medium text-emerald-800">
+                              {exp.title}
+                            </p>
+                            <p className="text-xs text-emerald-500">
+                              {exp.category} • {exp.date}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                          <p className="font-semibold text-emerald-600">
+                            ₹{exp.amount}
+                          </p>
+
+                          <button
+                            onClick={() => {
+                              setShowListModal(false);
+                              setViewExpense(exp);
+                            }}
+                            className="text-sm text-emerald-500 hover:text-emerald-700"
+                          >
+                            <Eye size={16} />
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setShowListModal(false);
+                              setEditExpense(exp);
+                              setShowAddModal(true);
+                            }}
+                            className="text-sm text-blue-500 hover:text-blue-700"
+                          >
+                            ✏️
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setShowListModal(false);
+                              setExpenseToDelete(exp);
+                            }}
+                            className="text-sm text-red-500 hover:text-red-700"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </>
   );
@@ -443,7 +486,9 @@ function ChartCard({
 }) {
   return (
     <div className="bg-white border rounded-2xl p-5 shadow-sm">
-      <h4 className="text-lg font-semibold text-emerald-700 mb-3">{title}</h4>
+      <h4 className="text-lg font-semibold text-emerald-700 mb-3">
+        {title}
+      </h4>
       {children}
     </div>
   );

@@ -16,6 +16,8 @@ import {
 import Headbar from "../../components/dashboard/Headbar";
 import ExpenseForm from "./ExpenseForm";
 import api from "../../services/api";
+import ExpenseViewModal from "./ExpenseViewModal";
+import DeleteConfirmationModal from "./DeleteConfirmationModal";
 
 interface ExpenseOwner {
   id: string;
@@ -38,10 +40,15 @@ export default function AddExpense() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalExpense, setTotalExpense] = useState<number>(0);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [viewExpense, setViewExpense] = useState<Expense | null>(null);
+  const [editExpense, setEditExpense] = useState<Expense | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+  const [deleting, setDeleting] = useState<boolean>(false);
+
 
   // ===== Dummy Analytics Data =====
   const categoryData = [
@@ -98,6 +105,21 @@ export default function AddExpense() {
   useEffect(() => {
     handleRefresh();
   }, []);
+
+
+  const handleDeleteExpense = async () => {
+    if (!expenseToDelete) return;
+    try {
+      setDeleting(true);
+      await api.delete(`/expense/delete/${expenseToDelete.id}`);
+      await handleRefresh();
+    } catch (err) {
+      console.error("Error deleting expense:", err);
+    } finally {
+      setDeleting(false);
+      setExpenseToDelete(null);
+    }
+  };
 
   // ================= UI =================
   return (
@@ -232,17 +254,36 @@ export default function AddExpense() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                      <p className="font-semibold text-emerald-600">
-                        ₹{exp.amount}
-                      </p>
+                      <p className="font-semibold text-emerald-600">₹{exp.amount}</p>
+
+                      {/* View Button */}
                       <button
-                        onClick={() => setSelectedExpense(exp)}
+                        onClick={() => setViewExpense(exp)}
                         className="flex items-center gap-1 text-sm text-emerald-500 hover:text-emerald-700"
                       >
-                        <Eye size={16} />
-                        View
+                        <Eye size={16} /> View
+                      </button>
+
+                      {/* Edit Button */}
+                      <button
+                        onClick={() => {
+                          setEditExpense(exp);
+                          setShowAddModal(true);
+                        }}
+                        className="flex items-center gap-1 text-sm text-blue-500 hover:text-blue-700"
+                      >
+                        ✏️ Edit
+                      </button>
+
+
+                      <button
+                        onClick={() => setExpenseToDelete(exp)}
+                        className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700"
+                      >
+                        🗑️ Delete
                       </button>
                     </div>
+
                   </motion.div>
                 ))}
               </motion.div>
@@ -267,32 +308,61 @@ export default function AddExpense() {
                 className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-2xl relative"
               >
                 <button
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setEditExpense(null);
+                  }}
                   className="absolute top-3 right-3 text-emerald-500 hover:text-emerald-700"
                 >
                   <X size={20} />
                 </button>
 
+
                 <h2 className="text-xl font-semibold text-emerald-700 mb-4">
-                  Add New Expense
+                  {editExpense ? "Edit Expense" : "Add New Expense"}
                 </h2>
 
                 <ExpenseForm
                   {...({
+                    expense: editExpense, // Pass if editing
                     onSuccess: async () => {
                       await handleRefresh();
                       setShowAddModal(false);
+                      setEditExpense(null);
                     },
                   } as any)}
                 />
+
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
+        {/* ================= VIEW EXPENSE MODAL ================= */}
+        <AnimatePresence>
+          {viewExpense && (
+            <ExpenseViewModal
+              expense={viewExpense}
+              onClose={() => setViewExpense(null)}
+            />
+          )}
+
+        </AnimatePresence>
+
+        <DeleteConfirmationModal
+          open={!!expenseToDelete}
+          title="Delete Expense"
+          message={`Are you sure you want to delete "${expenseToDelete?.title}"?`}
+          onCancel={() => setExpenseToDelete(null)}
+          onConfirm={handleDeleteExpense}
+          loading={deleting}
+        />
+
       </motion.div>
     </>
   );
 }
+
+
 
 // ================= SUBCOMPONENTS =================
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
   CreditCard,
@@ -22,7 +22,12 @@ type ExpenseFormData = {
   icon?: string;
 };
 
-export default function ExpenseForm({ onSuccess }: { onSuccess?: () => void }) {
+interface ExpenseFormProps {
+  onSuccess?: () => void;
+  expense?: ExpenseFormData & { id?: number }; // for editing mode
+}
+
+export default function ExpenseForm({ onSuccess, expense }: ExpenseFormProps) {
   const {
     register,
     handleSubmit,
@@ -45,15 +50,43 @@ export default function ExpenseForm({ onSuccess }: { onSuccess?: () => void }) {
 
   const emojiOptions = ["🍕", "🍔", "🛍️", "💡", "🎬", "🏠", "🚗", "💻", "🎁", "💼"];
 
+  // ✅ Pre-fill form when editing
+  useEffect(() => {
+    if (expense) {
+      reset({
+        title: expense.title || "",
+        category: expense.category || "",
+        amount: expense.amount || undefined,
+        date: expense.date || "",
+        description: expense.description || "",
+        fileUrl: expense.fileUrl || "",
+        icon: expense.icon || "",
+      });
+      setSelectedEmoji(expense.icon || "");
+    } else {
+      reset(); // clear form if adding new
+      setSelectedEmoji("");
+    }
+  }, [expense, reset]);
+
   const handleEmojiSelect = (emoji: string) => {
     setSelectedEmoji(emoji);
     setValue("icon", emoji);
   };
 
+  // ✅ Handle Add or Edit
   const onSubmit = async (data: ExpenseFormData) => {
     try {
-      await api.post("/expense/create-expense", data);
-      alert("Expense saved successfully!");
+      if (expense?.id) {
+        // Editing existing expense
+        await api.put(`/expense/update/${expense.id}`, data);
+        alert("Expense updated successfully!");
+      } else {
+        // Adding new expense
+        await api.post("/expense/create-expense", data);
+        alert("Expense added successfully!");
+      }
+
       if (onSuccess) onSuccess();
     } catch (err) {
       console.error(err);
@@ -151,11 +184,10 @@ export default function ExpenseForm({ onSuccess }: { onSuccess?: () => void }) {
               type="button"
               whileHover={{ scale: 1.1 }}
               onClick={() => handleEmojiSelect(emoji)}
-              className={`text-xl p-2 rounded-full border transition ${
-                selectedEmoji === emoji
-                  ? "border-emerald-500 bg-emerald-50"
-                  : "border-emerald-100 hover:border-emerald-300"
-              }`}
+              className={`text-xl p-2 rounded-full border transition ${selectedEmoji === emoji
+                ? "border-emerald-500 bg-emerald-50"
+                : "border-emerald-100 hover:border-emerald-300"
+                }`}
             >
               {emoji}
             </motion.button>
@@ -205,7 +237,11 @@ export default function ExpenseForm({ onSuccess }: { onSuccess?: () => void }) {
           disabled={isSubmitting}
           className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-medium shadow hover:brightness-105 disabled:opacity-60"
         >
-          {isSubmitting ? "Saving..." : "Save Expense"}
+          {isSubmitting
+            ? "Saving..."
+            : expense
+              ? "Update Expense"
+              : "Save Expense"}
         </button>
       </div>
     </motion.form>

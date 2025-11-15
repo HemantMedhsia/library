@@ -13,11 +13,13 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
+
 import Headbar from "../../components/dashboard/Headbar";
 import ExpenseForm from "./ExpenseForm";
-import api from "../../services/api";
 import ExpenseViewModal from "./ExpenseViewModal";
 import DeleteConfirmationModal from "./DeleteConfirmationModal";
+
+import api from "../../services/api";
 
 interface ExpenseOwner {
   id: string;
@@ -39,49 +41,57 @@ interface Expense {
 export default function AddExpense() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalExpense, setTotalExpense] = useState<number>(0);
+  const [currentMonthExpense, setCurrentMonthExpense] = useState<number>(0);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewExpense, setViewExpense] = useState<Expense | null>(null);
   const [editExpense, setEditExpense] = useState<Expense | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
+  const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [monthlyTrend, setMonthlyTrend] = useState<any[]>([]);
 
+  // ====================== FETCH FUNCTIONS ======================
 
-  // ===== Dummy Analytics Data =====
-  const categoryData = [
-    { name: "Food", value: 22000 },
-    { name: "Transport", value: 8000 },
-    { name: "Bills", value: 12000 },
-    { name: "Entertainment", value: 7000 },
-    { name: "Shopping", value: 5000 },
-  ];
-  const monthlyTrend = [
-    { month: "Jan", expense: 3200 },
-    { month: "Feb", expense: 4700 },
-    { month: "Mar", expense: 5900 },
-    { month: "Apr", expense: 6500 },
-    { month: "May", expense: 7200 },
-    { month: "Jun", expense: 8100 },
-    { month: "Jul", expense: 9100 },
-  ];
-  const COLORS = ["#10B981", "#34D399", "#6EE7B7", "#A7F3D0", "#DCFCE7"];
+  const fetchMonthlyTrend = async () => {
+    try {
+      const res = await api.get("/expense/trend");
+      if (res.data?.status === "success") {
+        console.log("Monthly Trend Response:", res.data.data);
+        setMonthlyTrend(res.data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching trend:", err);
+    }
+  };
 
-  // ================= FETCH FUNCTIONS =================
+  const fetchCategoryTotals = async () => {
+    try {
+      const res = await api.get("/expense/category-totals");
+      if (res.data?.status === "success") {
+        setCategoryData(res.data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching category totals:", err);
+    }
+  };
+
   const fetchExpenses = async () => {
     try {
       setLoading(true);
       const response = await api.get("/expense/all");
+
       if (response.data?.status === "success") {
         setExpenses(response.data.data);
       } else {
         throw new Error(response.data?.message || "Unknown error");
       }
     } catch (err) {
-      console.error("Error fetching expenses:", err);
       setError("Failed to load expenses.");
+      console.error("Error fetching expenses:", err);
     } finally {
       setLoading(false);
     }
@@ -98,17 +108,34 @@ export default function AddExpense() {
     }
   };
 
+  const fetchCurrentMonthTotal = async () => {
+    try {
+      const response = await api.get("/expense/current-month-total");
+      if (response.data?.status === "success") {
+        setCurrentMonthExpense(response.data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching current month total:", err);
+    }
+  };
+
   const handleRefresh = async () => {
-    await Promise.all([fetchExpenses(), fetchTotalExpense()]);
+    await Promise.all([
+      fetchExpenses(),
+      fetchTotalExpense(),
+      fetchCurrentMonthTotal(),
+      fetchCategoryTotals(),
+      fetchMonthlyTrend(),
+    ]);
   };
 
   useEffect(() => {
     handleRefresh();
   }, []);
 
-
   const handleDeleteExpense = async () => {
     if (!expenseToDelete) return;
+
     try {
       setDeleting(true);
       await api.delete(`/expense/delete/${expenseToDelete.id}`);
@@ -121,7 +148,28 @@ export default function AddExpense() {
     }
   };
 
-  // ================= UI =================
+  // ====================== DUMMY ANALYTICS ======================
+  // const categoryData = [
+  //   { name: "Food", value: 22000 },
+  //   { name: "Transport", value: 8000 },
+  //   { name: "Bills", value: 12000 },
+  //   { name: "Entertainment", value: 7000 },
+  //   { name: "Shopping", value: 5000 },
+  // ];
+
+  // const monthlyTrend = [
+  //   { month: "Jan", expense: 3200 },
+  //   { month: "Feb", expense: 4700 },
+  //   { month: "Mar", expense: 5900 },
+  //   { month: "Apr", expense: 6500 },
+  //   { month: "May", expense: 7200 },
+  //   { month: "Jun", expense: 8100 },
+  //   { month: "Jul", expense: 9100 },
+  // ];
+
+  const COLORS = ["#10B981", "#34D399", "#6EE7B7", "#A7F3D0", "#DCFCE7"];
+
+  // ========================== UI ==============================
   return (
     <>
       <Headbar />
@@ -130,10 +178,10 @@ export default function AddExpense() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className="min-h-screen p-6 "
+        className="min-h-screen p-6"
       >
         <div className="max-w-6xl mx-auto space-y-8">
-          {/* ================= HEADER ================= */}
+          {/* HEADER */}
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-emerald-700">
@@ -143,28 +191,38 @@ export default function AddExpense() {
                 Track your spending smartly and beautifully ✨
               </p>
             </div>
+
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl shadow-md hover:bg-emerald-700 transition-all"
+              className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl shadow-md hover:bg-emerald-700"
             >
               <PlusCircle size={20} />
               Add Expense
             </motion.button>
           </div>
 
-          {/* ================= STATS CARDS ================= */}
+          {/* STATS CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <StatCard
               title="Total Expense"
-              value={`₹${totalExpense.toLocaleString() || "54,200"}`}
+              value={`₹${totalExpense.toLocaleString()}`}
               sub="All time"
             />
-            <StatCard title="This Month" value="₹18,500" sub="November 2025" />
-            <StatCard title="Top Category" value="Food 🍕" sub="40% of spend" />
+
+            <StatCard
+              title="This Month"
+              value={`₹${currentMonthExpense.toLocaleString()}`}
+              sub={new Date().toLocaleString("default", {
+                month: "long",
+                year: "numeric",
+              })}
+            />
+
+            <StatCard title="Top Category" value="Food 🍕" sub="Dummy data" />
           </div>
 
-          {/* ================= ANALYTICS SECTION ================= */}
+          {/* ANALYTICS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ChartCard title="Category Breakdown">
               <ResponsiveContainer width="100%" height={250}>
@@ -173,17 +231,12 @@ export default function AddExpense() {
                     data={categoryData}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
                     outerRadius={90}
-                    fill="#8884d8"
                     dataKey="value"
                     label
                   >
                     {categoryData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
+                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -194,7 +247,7 @@ export default function AddExpense() {
             <ChartCard title="Monthly Expense Trend">
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={monthlyTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#d1fae5" />
+                  <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
                   <Tooltip />
@@ -210,9 +263,9 @@ export default function AddExpense() {
             </ChartCard>
           </div>
 
-          {/* ================= EXPENSE LIST ================= */}
-          <div className=" backdrop-blur-md border border-emerald-100 rounded-2xl shadow-md overflow-hidden">
-            <div className="p-5 border-b border-emerald-50 flex justify-between items-center">
+          {/* EXPENSE LIST */}
+          <div className="border rounded-2xl shadow-md overflow-hidden">
+            <div className="p-5 border-b flex justify-between items-center">
               <h3 className="text-lg font-semibold text-emerald-700">
                 Recent Expenses
               </h3>
@@ -222,16 +275,16 @@ export default function AddExpense() {
             </div>
 
             {loading ? (
-              <div className="flex justify-center items-center py-10 text-emerald-600">
+              <div className="flex justify-center py-10 text-emerald-600">
                 <Loader2 className="animate-spin mr-2" size={20} />
                 Loading expenses...
               </div>
-            ) : !loading && expenses.length === 0 ? (
+            ) : expenses.length === 0 ? (
               <p className="text-center text-emerald-400 py-6">
-                No expenses yet. Add one to get started!
+                No expenses yet. Add one!
               </p>
             ) : (
-              <motion.div layout className="divide-y divide-emerald-50">
+              <motion.div layout className="divide-y">
                 {expenses.map((exp) => (
                   <motion.div
                     key={exp.id}
@@ -239,7 +292,7 @@ export default function AddExpense() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="flex justify-between items-center p-4 hover:bg-emerald-50 transition-all"
+                    className="flex justify-between items-center p-4 hover:bg-emerald-50"
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{exp.icon || "💵"}</span>
@@ -254,36 +307,34 @@ export default function AddExpense() {
                     </div>
 
                     <div className="flex items-center gap-4">
-                      <p className="font-semibold text-emerald-600">₹{exp.amount}</p>
+                      <p className="font-semibold text-emerald-600">
+                        ₹{exp.amount}
+                      </p>
 
-                      {/* View Button */}
                       <button
                         onClick={() => setViewExpense(exp)}
-                        className="flex items-center gap-1 text-sm text-emerald-500 hover:text-emerald-700"
+                        className="text-sm text-emerald-500 hover:text-emerald-700"
                       >
                         <Eye size={16} /> View
                       </button>
 
-                      {/* Edit Button */}
                       <button
                         onClick={() => {
                           setEditExpense(exp);
                           setShowAddModal(true);
                         }}
-                        className="flex items-center gap-1 text-sm text-blue-500 hover:text-blue-700"
+                        className="text-sm text-blue-500 hover:text-blue-700"
                       >
                         ✏️ Edit
                       </button>
 
-
                       <button
                         onClick={() => setExpenseToDelete(exp)}
-                        className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700"
+                        className="text-sm text-red-500 hover:text-red-700"
                       >
                         🗑️ Delete
                       </button>
                     </div>
-
                   </motion.div>
                 ))}
               </motion.div>
@@ -291,32 +342,30 @@ export default function AddExpense() {
           </div>
         </div>
 
-        {/* ================= ADD EXPENSE MODAL ================= */}
+        {/* ADD / EDIT MODAL */}
         <AnimatePresence>
           {showAddModal && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50"
+              className="fixed inset-0 bg-black/40 flex justify-center items-center"
             >
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-2xl relative"
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.9 }}
+                className="bg-white rounded-2xl p-6 w-full max-w-2xl relative"
               >
                 <button
                   onClick={() => {
                     setShowAddModal(false);
                     setEditExpense(null);
                   }}
-                  className="absolute top-3 right-3 text-emerald-500 hover:text-emerald-700"
+                  className="absolute top-3 right-3 text-emerald-500"
                 >
                   <X size={20} />
                 </button>
-
 
                 <h2 className="text-xl font-semibold text-emerald-700 mb-4">
                   {editExpense ? "Edit Expense" : "Add New Expense"}
@@ -324,7 +373,7 @@ export default function AddExpense() {
 
                 <ExpenseForm
                   {...({
-                    expense: editExpense, // Pass if editing
+                    expense: editExpense,
                     onSuccess: async () => {
                       await handleRefresh();
                       setShowAddModal(false);
@@ -332,12 +381,12 @@ export default function AddExpense() {
                     },
                   } as any)}
                 />
-
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
-        {/* ================= VIEW EXPENSE MODAL ================= */}
+
+        {/* VIEW MODAL */}
         <AnimatePresence>
           {viewExpense && (
             <ExpenseViewModal
@@ -345,26 +394,23 @@ export default function AddExpense() {
               onClose={() => setViewExpense(null)}
             />
           )}
-
         </AnimatePresence>
 
+        {/* DELETE MODAL */}
         <DeleteConfirmationModal
           open={!!expenseToDelete}
           title="Delete Expense"
-          message={`Are you sure you want to delete "${expenseToDelete?.title}"?`}
+          message={`Delete "${expenseToDelete?.title}"?`}
           onCancel={() => setExpenseToDelete(null)}
           onConfirm={handleDeleteExpense}
           loading={deleting}
         />
-
       </motion.div>
     </>
   );
 }
 
-
-
-// ================= SUBCOMPONENTS =================
+// ================= SUB COMPONENTS =================
 
 function StatCard({
   title,
@@ -379,7 +425,7 @@ function StatCard({
     <motion.div
       whileHover={{ y: -3 }}
       transition={{ type: "spring", stiffness: 200 }}
-      className="p-5 rounded-2xl bg-gradient-to-br from-emerald-100/80 to-white/70 shadow-md border border-emerald-200/50 backdrop-blur-sm"
+      className="p-5 rounded-2xl bg-gradient-to-br from-emerald-100 to-white shadow-md"
     >
       <h4 className="text-sm text-emerald-600 font-medium">{title}</h4>
       <p className="text-2xl font-bold text-emerald-700 mt-1">{value}</p>
@@ -396,7 +442,7 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white/80 backdrop-blur-md border border-emerald-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+    <div className="bg-white border rounded-2xl p-5 shadow-sm">
       <h4 className="text-lg font-semibold text-emerald-700 mb-3">{title}</h4>
       {children}
     </div>

@@ -10,7 +10,7 @@ export default function About() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="min-h-screen p-6 bg-gradient-to-b from-emerald-50 to-emerald-100"
+                className="min-h-screen p-6 to-emerald-100"
             >
                 <div className="max-w-5xl mx-auto space-y-10">
                     {/* Header Section */}

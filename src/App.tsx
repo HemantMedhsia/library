@@ -7,6 +7,7 @@ import "./App.css";
 import AddExpense from "./pages/expense/AddExpense";
 import AddSaving from "./pages/saving/AddSaving";
 import Income from "./pages/income/Income";
+import About from "./pages/About";
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="income" element={<Income />} />
           <Route path="expenses/add-expense" element={<AddExpense />} />
           <Route path="expenses/add-saving" element={<AddSaving/>}/>
+          <Route path="about" element={<About/>}/>
         </Route>
       </Routes>
   );

@@ -1,26 +1,24 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { PlusCircle, X, Eye, Loader2 } from "lucide-react";
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from "recharts";
+import { motion } from "framer-motion";
+import { PlusCircle, Eye, Loader2, X } from "lucide-react";
 
 import Headbar from "../../components/dashboard/Headbar";
 import ExpenseForm from "./ExpenseForm";
 import ExpenseViewModal from "./ExpenseViewModal";
-import DeleteConfirmationModal from "./DeleteConfirmationModal";
+import DeleteConfirmationModal from "../../components/common/modals/DeleteConfirmationModal";
+
+// Reusable Components
+import StatCard from "../../components/common/cards/StatCard";
+import ChartCard from "../../components/common/cards/ChartCard";
+import PieChartCard from "../../components/common/cards/PieChartCard";
+import LineChartCard from "../../components/common/cards/LineChartCard";
+import ModalWrapper from "../../components/common/modals/ModalWrapper";
+import SearchInput from "../../components/common/inputs/SearchInput";
+import ExpenseListItem from "../../components/common/lists/ExpenseListItem";
 
 import api from "../../services/api";
 
+// ================== INTERFACES ==================
 interface ExpenseOwner {
   id: string;
   name: string;
@@ -33,124 +31,77 @@ interface Expense {
   category: string;
   description: string;
   date: string;
-  fileUrl?: string | null;
-  icon?: string | null;
+  fileUrl?: string;
+  icon?: string;
   owner?: ExpenseOwner;
 }
 
+// ================== MAIN COMPONENT ==================
 export default function AddExpense() {
-  // ====================== STATES ======================
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [totalExpense, setTotalExpense] = useState<number>(0);
-  const [currentMonthExpense, setCurrentMonthExpense] = useState<number>(0);
-
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showListModal, setShowListModal] = useState(false);
-
-  const [viewExpense, setViewExpense] = useState<Expense | null>(null);
-  const [editExpense, setEditExpense] = useState<Expense | null>(null);
-
-  const [loading, setLoading] = useState(true);
-  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
-  const [deleting, setDeleting] = useState<boolean>(false);
-
+  const [totalExpense, setTotalExpense] = useState(0);
+  const [currentMonthExpense, setCurrentMonthExpense] = useState(0);
   const [categoryData, setCategoryData] = useState<any[]>([]);
   const [monthlyTrend, setMonthlyTrend] = useState<any[]>([]);
 
-  // 🔍 Search by category
+  const [loading, setLoading] = useState(true);
+
+  // Modals Control
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showListModal, setShowListModal] = useState(false);
+  const [viewExpense, setViewExpense] = useState<Expense | null>(null);
+  const [editExpense, setEditExpense] = useState<Expense | null>(null);
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [categorySearch, setCategorySearch] = useState("");
 
-  // Filtered list
+  // Filtered expenses
   const filteredExpenses = expenses.filter((exp) =>
     exp.category.toLowerCase().includes(categorySearch.toLowerCase())
   );
 
-  // ====================== FETCH FUNCTIONS ======================
-
-  const fetchMonthlyTrend = async () => {
-    try {
-      const res = await api.get("/expense/trend");
-      if (res.data?.status === "success") {
-        setMonthlyTrend(res.data.data);
-      }
-    } catch (err) {
-      console.error("Error fetching trend:", err);
-    }
-  };
-
-  const fetchCategoryTotals = async () => {
-    try {
-      const res = await api.get("/expense/category-totals");
-      if (res.data?.status === "success") {
-        setCategoryData(res.data.data);
-      }
-    } catch (err) {
-      console.error("Error fetching category totals:", err);
-    }
-  };
-
-  const fetchExpenses = async () => {
+  // ================== API CALLS ==================
+  const fetchAllData = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/expense/all");
 
-      if (response.data?.status === "success") {
-        setExpenses(response.data.data);
-      }
+      const [exRes, totalRes, currRes, catRes, trendRes] = await Promise.all([
+        api.get("/expense/all"),
+        api.get("/expense/total"),
+        api.get("/expense/current-month-total"),
+        api.get("/expense/category-totals"),
+        api.get("/expense/trend"),
+      ]);
+
+      if (exRes.data?.status === "success") setExpenses(exRes.data.data);
+      if (totalRes.data?.status === "success")
+        setTotalExpense(totalRes.data.data);
+      if (currRes.data?.status === "success")
+        setCurrentMonthExpense(currRes.data.data);
+      if (catRes.data?.status === "success") setCategoryData(catRes.data.data);
+      if (trendRes.data?.status === "success")
+        setMonthlyTrend(trendRes.data.data);
     } catch (err) {
-      console.error("Error fetching expenses:", err);
+      console.error("Fetch Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchTotalExpense = async () => {
-    try {
-      const response = await api.get("/expense/total");
-      if (response.data?.status === "success") {
-        setTotalExpense(response.data.data);
-      }
-    } catch (err) {
-      console.error("Error fetching total expense:", err);
-    }
-  };
-
-  const fetchCurrentMonthTotal = async () => {
-    try {
-      const response = await api.get("/expense/current-month-total");
-      if (response.data?.status === "success") {
-        setCurrentMonthExpense(response.data.data);
-      }
-    } catch (err) {
-      console.error("Error fetching current month total:", err);
-    }
-  };
-
-  const handleRefresh = async () => {
-    await Promise.all([
-      fetchExpenses(),
-      fetchTotalExpense(),
-      fetchCurrentMonthTotal(),
-      fetchCategoryTotals(),
-      fetchMonthlyTrend(),
-    ]);
-  };
-
   useEffect(() => {
-    handleRefresh();
+    fetchAllData();
   }, []);
 
-  // ====================== DELETE FUNCTION ======================
-
+  // ================== DELETE HANDLER ==================
   const handleDeleteExpense = async () => {
     if (!expenseToDelete) return;
 
     try {
       setDeleting(true);
       await api.delete(`/expense/delete/${expenseToDelete.id}`);
-      await handleRefresh();
+      await fetchAllData();
     } catch (err) {
-      console.error("Error deleting expense:", err);
+      console.error("Delete Error:", err);
     } finally {
       setDeleting(false);
       setExpenseToDelete(null);
@@ -158,20 +109,16 @@ export default function AddExpense() {
     }
   };
 
-  const COLORS = ["#10B981", "#34D399", "#6EE7B7", "#A7F3D0", "#DCFCE7"];
-
+  // ================== RENDER ==================
   return (
     <>
       <Headbar />
-
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
+        initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
         className="min-h-screen p-6"
       >
         <div className="max-w-6xl mx-auto space-y-8">
-
           {/* HEADER */}
           <div className="flex justify-between items-center">
             <div>
@@ -179,33 +126,32 @@ export default function AddExpense() {
                 Expense Dashboard
               </h1>
               <p className="text-emerald-500 text-sm mt-1">
-                Track your spending smartly and beautifully ✨
+                Track your spending smartly ✨
               </p>
             </div>
 
             <div className="flex gap-3">
-
+              {/* View Button */}
               <motion.button
                 whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-xl shadow"
                 onClick={() => setShowListModal(true)}
-                className="flex items-center gap-2 bg-emerald-100 text-emerald-700 px-4 py-2 rounded-xl shadow hover:bg-emerald-200"
               >
-                <Eye size={18} />
-                View Expenses
+                <Eye size={18} /> View Expenses
               </motion.button>
 
+              {/* Add Button */}
               <motion.button
                 whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl shadow"
                 onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl shadow-md hover:bg-emerald-700"
               >
-                <PlusCircle size={20} />
-                Add Expense
+                <PlusCircle size={20} /> Add Expense
               </motion.button>
             </div>
           </div>
 
-          {/* STATS CARDS */}
+          {/* STAT CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <StatCard
               title="Total Expense"
@@ -222,111 +168,62 @@ export default function AddExpense() {
               })}
             />
 
-            <StatCard title="Top Category" value="Food 🍕" sub="Dummy data" />
+            <StatCard
+              title="Top Category"
+              value="Food 🍔"
+              sub="(API add later)"
+            />
           </div>
 
-          {/* ANALYTICS */}
+          {/* CHARTS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ChartCard title="Category Breakdown">
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={90}
-                    dataKey="value"
-                    label
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              <PieChartCard
+                data={categoryData}
+                dataKey="value"
+                nameKey="category"
+              />
             </ChartCard>
 
             <ChartCard title="Monthly Expense Trend">
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={monthlyTrend}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="expense"
-                    stroke="#10B981"
-                    strokeWidth={2.5}
-                    dot={{ r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <LineChartCard data={monthlyTrend} xKey="month" yKey="expense" />
             </ChartCard>
           </div>
         </div>
 
-        {/* ADD / EDIT MODAL */}
-        <AnimatePresence>
-          {showAddModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 flex justify-center items-center"
-            >
-              <motion.div
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0.9 }}
-                className="bg-white rounded-2xl p-6 w-full max-w-2xl relative"
-              >
-                <button
-                  onClick={() => {
-                    setShowAddModal(false);
-                    setEditExpense(null);
-                    setShowListModal(true);
-                  }}
-                  className="absolute top-3 right-3 text-emerald-500"
-                >
-                  <X size={20} />
-                </button>
+        {/* ==================== ADD / EDIT MODAL ==================== */}
+        <ModalWrapper
+          open={showAddModal}
+          onClose={() => {
+            setShowAddModal(false);
+            setEditExpense(null);
+          }}
+        >
+          <h2 className="text-xl font-semibold text-emerald-700 mb-4">
+            {editExpense ? "Edit Expense" : "Add New Expense"}
+          </h2>
 
-                <h2 className="text-xl font-semibold text-emerald-700 mb-4">
-                  {editExpense ? "Edit Expense" : "Add New Expense"}
-                </h2>
+          <ExpenseForm
+            expense={editExpense ?? undefined}
+            onSuccess={async () => {
+              await fetchAllData();
+              setShowAddModal(false);
+              setEditExpense(null);
+              setShowListModal(true);
+            }}
+          />
+        </ModalWrapper>
 
-                <ExpenseForm
-                  {...{
-                    expense: editExpense,
-                    onSuccess: async () => {
-                      await handleRefresh();
-                      setShowAddModal(false);
-                      setEditExpense(null);
-                      setShowListModal(true); // ✔ After update, go back to list modal
-                    },
-                  }}
-                />
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* ==================== VIEW MODAL ==================== */}
+        <ExpenseViewModal
+          expense={viewExpense}
+          onClose={() => {
+            setViewExpense(null);
+            setShowListModal(true);
+          }}
+        />
 
-        {/* VIEW EXPENSE MODAL */}
-        <AnimatePresence>
-          {viewExpense && (
-            <ExpenseViewModal
-              expense={viewExpense}
-              onClose={() => {
-                setViewExpense(null);
-                setShowListModal(true);
-              }}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* DELETE MODAL */}
+        {/* ==================== DELETE MODAL ==================== */}
         <DeleteConfirmationModal
           open={!!expenseToDelete}
           title="Delete Expense"
@@ -339,157 +236,55 @@ export default function AddExpense() {
           loading={deleting}
         />
 
-        {/* ==================== EXPENSE LIST MODAL ==================== */}
-        <AnimatePresence>
-          {showListModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 flex justify-center items-center z-50"
-            >
-              <motion.div
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0.9 }}
-                className="bg-white rounded-2xl p-6 w-full max-w-3xl relative max-h-[80vh] overflow-y-auto"
-              >
-                <button
-                  onClick={() => setShowListModal(false)}
-                  className="absolute top-3 right-3 text-emerald-500"
-                >
-                  <X size={22} />
-                </button>
+        {/* ==================== LIST MODAL ==================== */}
+        <ModalWrapper
+          open={showListModal}
+          onClose={() => setShowListModal(false)}
+        >
+          <h2 className="text-xl font-semibold text-emerald-700 mb-4">
+            Expense List
+          </h2>
 
-                <h2 className="text-xl font-semibold text-emerald-700 mb-4">
-                  Expense List
-                </h2>
+          <SearchInput
+            value={categorySearch}
+            onChange={setCategorySearch}
+            placeholder="Search by category..."
+          />
 
-                {/* SEARCH INPUT */}
-                <div className="mb-4">
-                  <input
-                    type="text"
-                    placeholder="Search by category..."
-                    className="w-full px-3 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-400"
-                    value={categorySearch}
-                    onChange={(e) => setCategorySearch(e.target.value)}
-                  />
-                </div>
-
-                {loading ? (
-                  <div className="flex justify-center py-10 text-emerald-600">
-                    <Loader2 className="animate-spin mr-2" size={20} />
-                    Loading expenses...
-                  </div>
-                ) : filteredExpenses.length === 0 ? (
-                  <p className="text-center text-emerald-400 py-6">
-                    No matching expenses.
-                  </p>
-                ) : (
-                  <div className="divide-y">
-                    {filteredExpenses.map((exp) => (
-                      <div
-                        key={exp.id}
-                        className="flex justify-between items-center p-4 hover:bg-emerald-50 rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">{exp.icon || "💵"}</span>
-                          <div>
-                            <p className="font-medium text-emerald-800">
-                              {exp.title}
-                            </p>
-                            <p className="text-xs text-emerald-500">
-                              {exp.category} • {exp.date}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                          <p className="font-semibold text-emerald-600">
-                            ₹{exp.amount}
-                          </p>
-
-                          <button
-                            onClick={() => {
-                              setShowListModal(false);
-                              setViewExpense(exp);
-                            }}
-                            className="text-sm text-emerald-500 hover:text-emerald-700"
-                          >
-                            <Eye size={16} />
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setShowListModal(false);
-                              setEditExpense(exp);
-                              setShowAddModal(true);
-                            }}
-                            className="text-sm text-blue-500 hover:text-blue-700"
-                          >
-                            ✏️
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setShowListModal(false);
-                              setExpenseToDelete(exp);
-                            }}
-                            className="text-sm text-red-500 hover:text-red-700"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            </motion.div>
+          {loading ? (
+            <div className="flex justify-center py-10 text-emerald-600">
+              <Loader2 className="animate-spin mr-2" size={20} /> Loading...
+            </div>
+          ) : filteredExpenses.length === 0 ? (
+            <p className="text-center text-emerald-400 py-6">
+              No matching expenses.
+            </p>
+          ) : (
+            <div className="divide-y mt-3">
+              {filteredExpenses.map((exp) => (
+                <ExpenseListItem
+                  key={exp.id}
+                  exp={exp}
+                  onView={() => {
+                    setShowListModal(false);
+                    setViewExpense(exp);
+                  }}
+                  onEdit={() => {
+                    setShowListModal(false);
+                    setEditExpense(exp);
+                    setShowAddModal(true);
+                  }}
+                  onDelete={() => {
+                    setShowListModal(false);
+                    setExpenseToDelete(exp);
+                  }}
+                />
+              ))}
+            </div>
           )}
-        </AnimatePresence>
+        </ModalWrapper>
+        
       </motion.div>
     </>
-  );
-}
-
-// ================= SUB COMPONENTS =================
-
-function StatCard({
-  title,
-  value,
-  sub,
-}: {
-  title: string;
-  value: string;
-  sub?: string;
-}) {
-  return (
-    <motion.div
-      whileHover={{ y: -3 }}
-      transition={{ type: "spring", stiffness: 200 }}
-      className="p-5 rounded-2xl bg-gradient-to-br from-emerald-100 to-white shadow-md"
-    >
-      <h4 className="text-sm text-emerald-600 font-medium">{title}</h4>
-      <p className="text-2xl font-bold text-emerald-700 mt-1">{value}</p>
-      <p className="text-xs text-emerald-500 mt-1">{sub}</p>
-    </motion.div>
-  );
-}
-
-function ChartCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="bg-white border rounded-2xl p-5 shadow-sm">
-      <h4 className="text-lg font-semibold text-emerald-700 mb-3">
-        {title}
-      </h4>
-      {children}
-    </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   CreditCard,
@@ -8,9 +8,17 @@ import {
   ImageIcon,
   Smile,
 } from "lucide-react";
-import ExpenseField from "./ExpenseField";
-import api from "../../services/api";
 import { motion } from "framer-motion";
+
+import api from "../../services/api";
+
+// Reusable Components
+import FormField from "../../components/common/forms/FormField";
+import TextInput from "../../components/common/inputs/TextInput";
+import NumberInput from "../../components/common/inputs/NumberInput";
+import SelectInput from "../../components/common/inputs/SelectInput";
+import TextareaInput from "../../components/common/inputs/TextareaInput";
+import EmojiPicker from "../../components/common/inputs/EmojiPicker";
 
 type ExpenseFormData = {
   title: string;
@@ -24,76 +32,53 @@ type ExpenseFormData = {
 
 interface ExpenseFormProps {
   onSuccess?: () => void;
-  expense?: ExpenseFormData & { id?: number }; // for editing mode
+  expense?: ExpenseFormData & { id?: number };
 }
 
 export default function ExpenseForm({ onSuccess, expense }: ExpenseFormProps) {
+  const emojiOptions = [
+    "🍕",
+    "🍔",
+    "🛍️",
+    "💡",
+    "🎬",
+    "🏠",
+    "🚗",
+    "💻",
+    "🎁",
+    "💼",
+  ];
+
+  const [selectedEmoji, setSelectedEmoji] = useState("");
+
   const {
     register,
     handleSubmit,
     reset,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<ExpenseFormData>({
-    defaultValues: {
-      title: "",
-      category: "",
-      amount: undefined,
-      date: "",
-      description: "",
-      icon: "",
-      fileUrl: "",
-    },
-  });
+  } = useForm<ExpenseFormData>();
 
-  const [selectedEmoji, setSelectedEmoji] = useState("");
-
-  const emojiOptions = ["🍕", "🍔", "🛍️", "💡", "🎬", "🏠", "🚗", "💻", "🎁", "💼"];
-
-  // ✅ Pre-fill form when editing
+  // Pre-fill
   useEffect(() => {
     if (expense) {
-      reset({
-        title: expense.title || "",
-        category: expense.category || "",
-        amount: expense.amount || undefined,
-        date: expense.date || "",
-        description: expense.description || "",
-        fileUrl: expense.fileUrl || "",
-        icon: expense.icon || "",
-      });
+      reset(expense);
       setSelectedEmoji(expense.icon || "");
-    } else {
-      reset(); // clear form if adding new
-      setSelectedEmoji("");
     }
-  }, [expense, reset]);
+  }, [expense]);
 
-  const handleEmojiSelect = (emoji: string) => {
-    setSelectedEmoji(emoji);
-    setValue("icon", emoji);
-  };
-
-  // ✅ Handle Add or Edit
   const onSubmit = async (data: ExpenseFormData) => {
     try {
       if (expense?.id) {
-        // Editing existing expense
         await api.put(`/expense/update/${expense.id}`, data);
-        alert("Expense updated successfully!");
       } else {
-        // Adding new expense
-        await api.post("/expense/create-expense", data);
-        alert("Expense added successfully!");
+        await api.post(`/expense/create-expense`, data);
       }
 
-      if (onSuccess) onSuccess();
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong while saving expense!");
-    } finally {
-      reset();
-      setSelectedEmoji("");
+      onSuccess?.();
+    } catch (e) {
+      console.error(e);
+      alert("Error saving expense");
     }
   };
 
@@ -101,126 +86,95 @@ export default function ExpenseForm({ onSuccess, expense }: ExpenseFormProps) {
     <motion.form
       onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col gap-4"
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
     >
-      {/* ====== Row 1 ====== */}
+      {/* Row 1 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <ExpenseField
+        <FormField
           label="Title"
-          icon={<Edit3 size={16} className="text-emerald-500" />}
+          icon={<Edit3 size={16} />}
           error={errors.title?.message}
         >
-          <input
-            {...register("title", { required: "Title is required" })}
-            placeholder="e.g. Grocery Shopping"
-            className="w-full rounded-lg border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none bg-white/70 backdrop-blur-sm"
+          <TextInput
+            register={register("title", { required: "Required" })}
+            placeholder="e.g. Grocery"
           />
-        </ExpenseField>
+        </FormField>
 
-        <ExpenseField
+        <FormField
           label="Amount"
-          icon={<CreditCard size={16} className="text-emerald-500" />}
+          icon={<CreditCard size={16} />}
           error={errors.amount?.message}
         >
-          <input
-            {...register("amount", {
-              required: "Amount is required",
+          <NumberInput
+            register={register("amount", {
+              required: "Required",
               valueAsNumber: true,
-              min: { value: 0.01, message: "Amount must be greater than 0" },
             })}
             placeholder="0.00"
-            type="number"
-            step="0.01"
-            className="w-full rounded-lg border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none bg-white/70 backdrop-blur-sm"
           />
-        </ExpenseField>
+        </FormField>
       </div>
 
-      {/* ====== Row 2 ====== */}
+      {/* Row 2 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <ExpenseField
+        <FormField
           label="Date"
-          icon={<Calendar size={16} className="text-emerald-500" />}
+          icon={<Calendar size={16} />}
           error={errors.date?.message}
         >
-          <input
-            {...register("date", { required: "Date is required" })}
+          <TextInput
+            register={register("date", { required: "Required" })}
             type="date"
-            className="w-full rounded-lg border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none bg-white/70 backdrop-blur-sm"
           />
-        </ExpenseField>
+        </FormField>
 
-        <ExpenseField
+        <FormField
           label="Category"
-          icon={<Tag size={16} className="text-emerald-500" />}
+          icon={<Tag size={16} />}
           error={errors.category?.message}
         >
-          <select
-            {...register("category", { required: "Category is required" })}
-            className="w-full rounded-lg border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none bg-white/70 backdrop-blur-sm"
-          >
-            <option value="">Choose category</option>
-            <option value="Food">Food</option>
-            <option value="Transport">Transport</option>
-            <option value="Bills">Bills</option>
-            <option value="Entertainment">Entertainment</option>
-            <option value="Shopping">Shopping</option>
-            <option value="Other">Other</option>
-          </select>
-        </ExpenseField>
+          <SelectInput
+            register={register("category", { required: "Required" })}
+            options={[
+              "Food",
+              "Transport",
+              "Bills",
+              "Entertainment",
+              "Shopping",
+              "Other",
+            ]}
+          />
+        </FormField>
       </div>
 
-      {/* ====== Emoji Picker ====== */}
-      <ExpenseField
-        label="Choose Emoji"
-        icon={<Smile size={16} className="text-emerald-500" />}
-      >
-        <div className="flex flex-wrap gap-2">
-          {emojiOptions.map((emoji) => (
-            <motion.button
-              key={emoji}
-              type="button"
-              whileHover={{ scale: 1.1 }}
-              onClick={() => handleEmojiSelect(emoji)}
-              className={`text-xl p-2 rounded-full border transition ${selectedEmoji === emoji
-                ? "border-emerald-500 bg-emerald-50"
-                : "border-emerald-100 hover:border-emerald-300"
-                }`}
-            >
-              {emoji}
-            </motion.button>
-          ))}
-        </div>
-      </ExpenseField>
-
-      {/* ====== File URL ====== */}
-      <ExpenseField
-        label="Receipt URL"
-        icon={<ImageIcon size={16} className="text-emerald-500" />}
-      >
-        <input
-          {...register("fileUrl")}
-          placeholder="https://example.com/bill.jpg"
-          className="w-full rounded-lg border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none bg-white/70 backdrop-blur-sm"
+      {/* Emoji Picker */}
+      <FormField label="Choose Emoji" icon={<Smile size={16} />}>
+        <EmojiPicker
+          selected={selectedEmoji}
+          onSelect={(em) => {
+            setSelectedEmoji(em);
+            setValue("icon", em);
+          }}
+          emojiList={emojiOptions}
         />
-      </ExpenseField>
+      </FormField>
 
-      {/* ====== Description ====== */}
-      <ExpenseField label="Description" error={errors.description?.message}>
-        <textarea
-          {...register("description", {
-            required: "Description is required",
-            maxLength: { value: 200, message: "Max 200 characters" },
-          })}
-          placeholder="Add a brief note..."
-          rows={4}
-          className="w-full rounded-xl border border-emerald-100 px-3 py-2 focus:ring-2 focus:ring-emerald-200 outline-none resize-none bg-white/70 backdrop-blur-sm"
+      {/* Receipt URL */}
+      <FormField label="Receipt URL" icon={<ImageIcon size={16} />}>
+        <TextInput register={register("fileUrl")} placeholder="https://..." />
+      </FormField>
+
+      {/* Description */}
+      <FormField label="Description" error={errors.description?.message}>
+        <TextareaInput
+          register={register("description", { required: "Required" })}
+          placeholder="Notes..."
         />
-      </ExpenseField>
+      </FormField>
 
-      {/* ====== Buttons ====== */}
+      {/* Buttons */}
       <div className="flex justify-end gap-3 mt-2">
         <button
           type="button"
@@ -228,20 +182,21 @@ export default function ExpenseForm({ onSuccess, expense }: ExpenseFormProps) {
             reset();
             setSelectedEmoji("");
           }}
-          className="px-4 py-2 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+          className="px-4 py-2 rounded-lg border bg-emerald-50 text-emerald-700"
         >
           Reset
         </button>
+
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-medium shadow hover:brightness-105 disabled:opacity-60"
+          className="px-4 py-2 rounded-lg bg-emerald-600 text-white"
         >
           {isSubmitting
             ? "Saving..."
             : expense
-              ? "Update Expense"
-              : "Save Expense"}
+            ? "Update Expense"
+            : "Save Expense"}
         </button>
       </div>
     </motion.form>
